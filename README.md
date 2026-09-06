@@ -1,4 +1,4 @@
-# HDS 生活监视器 (life-watcher)
+<img width="1897" height="593" alt="image" src="https://github.com/user-attachments/assets/ed6cc62c-36c9-424b-9f5e-9be1e66b9527" /># HDS 生活监视器 (life-watcher)
 
 > 聊天在幕前发生，生活在页面里继续。
 > 一个零依赖、即拷即用的 [hds-interlude](https://gitee.com/MomoiCore/hds-interlude) 配套监视工具：
@@ -116,7 +116,8 @@ node life-watcher.js --port 3742
 
 ## 🖼️ 界面预览
 
-> TODO：补充截图（日间章节排版 / 夜间主题 / 搜索高亮）
+<img width="1897" height="593" alt="`6X))SNM`2P_~T%{J( 5TVW" src="https://github.com/user-attachments/assets/213e45bb-f3be-4e70-8815-aa2e1cda17a3" />
+
 
 ## 🔗 相关项目
 
