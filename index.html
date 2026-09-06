@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生活长卷</title>
+<style>
+:root{
+  --bg:#f4eede; --bg-soft:#efe6d0; --ink:#3a3226; --ink-light:#6b6152;
+  --char:#b0435f; --user:#2f6f9f; --chapter:#8a6d2f;
+  --line:#d8cba8; --note:#9a8f7a; --q:#7a4f28;
+  --toc-bg:rgba(244,238,222,.96); --accent:#8a6d2f;
+}
+body.night{
+  --bg:#17161a; --bg-soft:#1d1c21; --ink:#cfc8ba; --ink-light:#8f887a;
+  --char:#e58ba1; --user:#7db3d9; --chapter:#c9a86a;
+  --line:#2e2c33; --note:#7a7468; --q:#c9a86a;
+  --toc-bg:rgba(23,22,26,.96); --accent:#c9a86a;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:auto}
+body{margin:0;display:flex;justify-content:center;background:var(--bg);color:var(--ink);
+  font:16px/2 "Georgia","Noto Serif SC","Source Han Serif SC","SimSun",serif;
+  transition:background .3s,color .3s}
+#topbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 14px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+#dot{width:9px;height:9px;border-radius:50%;background:#d5493f;box-shadow:0 0 7px #d5493f;flex:none}
+#dot.on{background:#3aa76d;box-shadow:0 0 7px #3aa76d}
+#title{font-weight:700;letter-spacing:1px;white-space:nowrap}
+#q{flex:1;min-width:140px;background:var(--bg-soft);color:var(--ink);border:1px solid var(--line);
+  border-radius:8px;padding:5px 11px;font-family:inherit;font-size:14px;outline:none}
+#q:focus{border-color:var(--accent)}
+#smeta{font-size:12px;color:var(--note);white-space:nowrap;min-width:44px;text-align:center;display:none}
+#topbar select,#topbar button{font-family:inherit;background:var(--bg-soft);color:var(--ink);
+  border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px}
+#topbar input[type=date]{font-family:inherit;background:var(--bg-soft);color:var(--ink);
+  border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:13px;color-scheme:light dark}
+#prev,#next{padding:5px 11px}
+#tocbtn.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+#newbtn{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:none;z-index:25;
+  background:var(--accent);color:var(--bg);border:none;border-radius:999px;padding:8px 22px;
+  cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+#newbtn:hover{filter:brightness(1.08)}
+mark{background:rgba(214,158,46,.42);color:inherit;padding:0 1px;border-radius:3px}
+mark.cur{background:#d98f2b;color:#fff}
+body.night mark{background:rgba(201,168,106,.32)}
+body.night mark.cur{background:#c9a86a;color:#17161a}
+
+/* ---------- 目录侧栏 ---------- */
+#toc{position:fixed;top:64px;right:0;bottom:0;width:250px;overflow-y:auto;z-index:20;
+  background:var(--toc-bg);border-left:1px solid var(--line);padding:18px 0 40px;transition:transform .25s}
+#toc .toc-title{text-align:center;letter-spacing:8px;color:var(--chapter);font-size:15px;margin:4px 0 14px}
+#toc ol{list-style:none;margin:0;padding:0}
+#toc li a{display:block;padding:8px 20px;color:var(--ink-light);text-decoration:none;font-size:13.5px;
+  border-left:3px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toc li a:hover{color:var(--ink);background:var(--bg-soft)}
+#toc li a.active{color:var(--chapter);border-left-color:var(--chapter);background:var(--bg-soft);font-weight:700}
+@media (max-width:1150px){
+  #toc{transform:translateX(100%)}
+  #toc.open{transform:translateX(0);box-shadow:-8px 0 24px rgba(0,0,0,.15)}
+}
+@media (min-width:1151px){
+  #book{margin-right:250px}
+  body.toc-collapsed #toc{display:none}
+  body.toc-collapsed #book{margin-right:0}
+}
+
+/* ---------- 书页 ---------- */
+#book{max-width:720px;padding:76px 26px 90px}
+#empty{text-align:center;color:var(--note);margin-top:18vh;letter-spacing:2px}
+
+.chapter{margin-bottom:70px}
+.ch-head{text-align:center;margin:46px 0 34px}
+.ch-no{color:var(--chapter);font-size:14px;letter-spacing:10px;text-indent:10px;margin-bottom:8px}
+.ch-date{font-size:24px;font-weight:700;margin:0 0 14px;letter-spacing:2px;color:var(--ink)}
+.orn{color:var(--line);font-size:14px;letter-spacing:4px}
+.orn::before{content:"————"}
+.orn::after{content:"————"}
+.orn .gem{margin:0 10px;color:var(--chapter)}
+
+.para{text-indent:2em;margin:0 0 6px;white-space:pre-wrap;word-break:break-word}
+.para .q{color:var(--q)}
+.dlg{margin:2px 0;white-space:pre-wrap;word-break:break-word}
+.dlg .sp{font-size:13px;letter-spacing:1px;margin-right:10px;opacity:.85}
+.dlg-char{color:var(--char)}
+.dlg-user{color:var(--user)}
+.note{text-align:center;color:var(--note);font-size:13.5px;font-style:italic;margin:14px 0;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div id="dot"></div>
+  <div id="title" title="">生活长卷</div>
+  <input id="q" type="text" placeholder="搜索内容…（Enter 下一个，Shift+Enter 上一个，Esc 清除）" autocomplete="off">
+  <select id="sscope" title="搜索范围类型">
+    <option value="all">全部内容</option>
+    <option value="chat">聊天内容</option>
+    <option value="life">日常生活</option>
+  </select>
+  <input id="sfrom" type="date" title="只搜索这一天及之后的内容">
+  <span id="smeta"></span>
+  <button id="prev" title="上一个匹配">‹</button>
+  <button id="next" title="下一个匹配">›</button>
+  <button id="tocbtn">目录</button>
+  <select id="filter">
+    <option value="all">全文</option>
+    <option value="life">只看日常</option>
+  </select>
+  <button id="theme">夜间</button>
+</div>
+
+<aside id="toc"><div class="toc-title">目 录</div><ol id="toclist"></ol></aside>
+
+<div id="book"><div id="empty">正在翻开这本生活…</div></div>
+<button id="newbtn">↓ 有新的一段</button>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const book = $('book'), dot = $('dot'), title = $('title'),
+      filterSel = $('filter'), newbtn = $('newbtn'), toc = $('toc'), toclist = $('toclist'),
+      qInput = $('q'), smeta = $('smeta'), sscope = $('sscope'), sfrom = $('sfrom');
+
+let entries = [];
+let charName = '角色';
+let mode = 'all';
+let pendingNew = 0;
+let renderedMaxId = 0;
+
+// 渲染游标（renderAll 时重置）
+let curSec = null, curDayKey = '', chNo = 0, chapterMap = [], prevKind = null, prevSide = '';
+
+// 搜索状态
+const searchState = { q: '', scope: 'all', from: null };
+let curDateOK = true;      // 当前正在渲染的条目是否落在日期范围内
+let curMatch = -1;
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const WEEK = ['日','一','二','三','四','五','六'];
+const fmtDate = (d) => `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 · 星期${WEEK[d.getDay()]}`;
+const fmtDateShort = (d) => `${d.getMonth() + 1}月${d.getDate()}日`;
+const dayKey = (e) => { const d = new Date(e.occurredAt); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+function numToCn(n) {
+  const digit = '零一二三四五六七八九';
+  if (n <= 0) return String(n);
+  if (n < 10) return digit[n];
+  if (n < 20) return '十' + (n % 10 ? digit[n % 10] : '');
+  const tens = Math.floor(n / 10), ones = n % 10;
+  return digit[tens] + '十' + (ones ? digit[ones] : '');
+}
+
+// ---------- 搜索：分词 + 高亮 ----------
+function tokenize(raw) {
+  const out = [];
+  const re = /(「[^」]*」|“[^”]*”)/g;
+  let last = 0, m;
+  while ((m = re.exec(raw))) {
+    if (m.index > last) out.push({ text: raw.slice(last, m.index), isQuote: false });
+    out.push({ text: m[0], isQuote: true });
+    last = m.index + m[0].length;
+  }
+  if (last < raw.length) out.push({ text: raw.slice(last), isQuote: false });
+  return out;
+}
+function scopeHit(role) {
+  if (!searchState.q || !curDateOK) return false;
+  return searchState.scope === 'all' || searchState.scope === role;
+}
+function markUp(escaped) {
+  const q = esc(searchState.q);
+  if (!q) return escaped;
+  return escaped.replace(new RegExp(escapeRe(q), 'gi'), (m) => '<mark data-m>' + m + '</mark>');
+}
+// blockRole: 'chat'=整条都是对白（角色/用户消息）,'narr'=旁白（引号内属聊天、其余属日常）
+function richHTML(raw, blockRole) {
+  if (blockRole === 'chat') {
+    const inner = scopeHit('chat') ? markUp(esc(raw)) : esc(raw);
+    return inner;
+  }
+  let html = '';
+  for (const seg of tokenize(raw)) {
+    const role = seg.isQuote ? 'chat' : 'life';
+    const escSeg = esc(seg.text);
+    const inner = scopeHit(role) ? markUp(escSeg) : escSeg;
+    html += seg.isQuote ? '<span class="q">' + inner + '</span>' : inner;
+  }
+  return html;
+}
+
+// ---------- 滚动 ----------
+function nearBottom() { return window.innerHeight + window.scrollY - document.body.scrollHeight < 140; }
+function follow(force) {
+  if (force || nearBottom()) { window.scrollTo(0, document.body.scrollHeight); pendingNew = 0; newbtn.style.display = 'none'; }
+}
+newbtn.addEventListener('click', () => follow(true));
+
+// ---------- 渲染 ----------
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.innerHTML = text;
+  return n;
+}
+function chapterHeader(dateKey, dateObj, chNo) {
+  const sec = el('section', 'chapter'); sec.id = 'ch-' + dateKey;
+  const head = el('header', 'ch-head');
+  head.appendChild(el('div', 'ch-no', esc('第' + numToCn(chNo) + '章')));
+  head.appendChild(el('h2', 'ch-date', esc(fmtDate(dateObj))));
+  const orn = el('div', 'orn');
+  orn.appendChild(el('span', 'gem', '◆'));
+  head.appendChild(orn);
+  sec.appendChild(head);
+  return sec;
+}
+function addPara(sec, raw) {
+  if (!String(raw).trim()) return;
+  sec.appendChild(el('p', 'para', richHTML(raw, 'narr')));
+}
+function addDlg(sec, speaker, raw, side) {
+  const p = el('p', 'dlg dlg-' + side);
+  p.appendChild(el('span', 'sp', esc(speaker)));
+  p.appendChild(document.createTextNode('「'));
+  p.appendChild(el('span', '', richHTML(raw, 'chat')));
+  p.appendChild(document.createTextNode('」'));
+  sec.appendChild(p);
+}
+function addNote(sec, text) {
+  sec.appendChild(el('p', 'note', '〔 ' + richHTML(text || '', 'narr') + ' 〕'));
+}
+function entryDom(sec, e) {
+  if (e.kind === 'script') { addPara(sec, e.content || ''); return; }
+  if (e.kind === 'character-message') {
+    for (const seg of String(e.content || '').split(/<sep\/>/).map(s => s.trim()).filter(Boolean)) addDlg(sec, charName, seg, 'char');
+    return;
+  }
+  if (e.kind === 'user-message') {
+    for (const seg of String(e.content || '').split(/<sep\/>/).map(s => s.trim()).filter(Boolean)) addDlg(sec, '我', seg, 'user');
+    return;
+  }
+  if (e.kind === 'character-platform-action') { addNote(sec, '发送了 ' + (e.content || '一个动作')); return; }
+  addNote(sec, e.content || '');
+}
+
+function appendEntry(e, silent) {
+  if (mode === 'life' && e.kind !== 'script') return;
+  const dk = dayKey(e);
+  if (dk !== curDayKey) {
+    chNo += 1;
+    curSec = chapterHeader(dk, new Date(e.occurredAt), chNo);
+    book.appendChild(curSec);
+    curDayKey = dk;
+    chapterMap.push({ key: dk, sec: curSec, no: chNo, first: e });
+    refreshToc();
+  }
+  curDateOK = dateOK(e);
+  const startIdx = curSec.children.length;
+  entryDom(curSec, e);
+  if (curSec.children[startIdx]) curSec.children[startIdx].dataset.eid = e.id;
+  renderedMaxId = Math.max(renderedMaxId, e.id);
+  const emptyEl = document.getElementById('empty');
+  if (emptyEl) emptyEl.remove();
+  if (!silent) {
+    if (nearBottom()) follow(true);
+    else { pendingNew++; newbtn.style.display = ''; newbtn.textContent = `↓ 有新的一段（${pendingNew}）`; }
+  }
+}
+
+function renderAll() {
+  book.innerHTML = '';
+  renderedMaxId = 0;
+  curSec = null; curDayKey = ''; chNo = 0; chapterMap = []; prevKind = null; prevSide = '';
+  const emptyEl = document.createElement('div');
+  emptyEl.id = 'empty';
+  emptyEl.textContent = mode === 'life' ? '该筛选下暂无日常…' : '正在翻开这本生活…';
+  book.appendChild(emptyEl);
+  refreshToc();
+  for (const e of entries) appendEntry(e, true);
+  refreshToc();
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+// ---------- 阅读位置锚点 ----------
+function getAnchorId() {
+  const nodes = book.querySelectorAll('[data-eid]');
+  if (!nodes.length) return null;
+  let last = null;
+  for (const n of nodes) {
+    if (n.getBoundingClientRect().top <= 90) last = n; else break;
+  }
+  return Number((last || nodes[0]).dataset.eid);
+}
+function scrollToAnchor(id) {
+  if (id == null) { window.scrollTo(0, 0); return; }
+  let target = null;
+  for (const n of book.querySelectorAll('[data-eid]')) {
+    const eid = Number(n.dataset.eid);
+    if (eid === id) { target = n; break; }
+    if (eid < id && (!target || Number(target.dataset.eid) < eid)) target = n;
+  }
+  if (target) window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY - 76);
+  else window.scrollTo(0, 0);
+}
+
+// ---------- 搜索控制 ----------
+function dateOK(e) {
+  if (!searchState.from) return true;
+  return new Date(e.occurredAt) >= searchState.from;
+}
+function matchMarks() { return book.querySelectorAll('mark[data-m]'); }
+function applySearchMeta() {
+  const total = matchMarks().length;
+  if (!searchState.q) { smeta.style.display = 'none'; return; }
+  smeta.style.display = '';
+  smeta.textContent = total ? `${Math.min(curMatch + 1, total)}/${total}` : '无结果';
+}
+function gotoMatch(i, scroll = true) {
+  const marks = matchMarks();
+  if (!marks.length) { curMatch = -1; applySearchMeta(); return; }
+  curMatch = Math.max(0, Math.min(i, marks.length - 1));
+  marks.forEach((m) => m.classList.remove('cur'));
+  const cur = marks[curMatch];
+  cur.classList.add('cur');
+  applySearchMeta();
+  if (scroll) cur.scrollIntoView({ block: 'center' });
+}
+function refreshMarks({ jumpFirst = false, preserve = false, anchor = null, keepCur = false } = {}) {
+  const prevCur = curMatch;
+  curMatch = -1;
+  renderAll();
+  const total = matchMarks().length;
+  if (searchState.q && total) {
+    if (jumpFirst) gotoMatch(0, true);
+    else if (keepCur && prevCur >= 0) gotoMatch(Math.min(prevCur, total - 1), false);
+    else gotoMatch(0, false);
+  } else { applySearchMeta(); }
+  if (preserve) scrollToAnchor(anchor);
+}
+function clearSearch() {
+  qInput.value = '';
+  searchState.q = '';
+  const a = getAnchorId();
+  renderAll();
+  scrollToAnchor(a);
+}
+
+let debounceTimer = null;
+qInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const had = !!searchState.q;
+    searchState.q = qInput.value.trim();
+    if (searchState.q && !had) {
+      renderAll();
+      gotoMatch(0, true);                 // 新搜索：跳到第一个匹配
+    } else if (searchState.q) {
+      refreshMarks({ preserve: true, anchor: getAnchorId(), keepCur: true });
+    } else {
+      const a = getAnchorId();
+      renderAll();
+      scrollToAnchor(a);                  // 清空：回到原位置
+    }
+  }, 250);
+});
+qInput.addEventListener('keydown', (e) => {
+  if (e.isComposing) return;   // 中文输入法选词的 Enter 不触发跳转
+  if (e.key === 'Enter') { e.preventDefault(); gotoMatch(curMatch + (e.shiftKey ? -1 : 1), true); }
+  else if (e.key === 'Escape') { clearSearch(); qInput.blur(); }
+});
+$('prev').addEventListener('click', () => gotoMatch(curMatch - 1, true));
+$('next').addEventListener('click', () => gotoMatch(curMatch + 1, true));
+sscope.addEventListener('change', () => {
+  searchState.scope = sscope.value;
+  const a = getAnchorId();
+  renderAll();
+  scrollToAnchor(a);
+});
+sfrom.addEventListener('change', () => {
+  const v = sfrom.value;
+  if (v) {
+    const [y, m, d] = v.split('-').map(Number);
+    searchState.from = new Date(y, m - 1, d);
+  } else searchState.from = null;
+  const a = getAnchorId();
+  renderAll();
+  scrollToAnchor(a);
+});
+
+// ---------- 目录 ----------
+function refreshToc() {
+  toclist.innerHTML = '';
+  for (const ch of chapterMap) {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '#ch-' + ch.key;
+    a.textContent = `第${numToCn(ch.no)}章 · ${fmtDateShort(new Date(ch.first.occurredAt))}`;
+    a.dataset.key = ch.key;
+    a.addEventListener('click', (ev) => { ev.preventDefault(); document.getElementById('ch-' + ch.key).scrollIntoView({ behavior: 'smooth' }); toc.classList.remove('open'); });
+    li.appendChild(a); toclist.appendChild(li);
+  }
+}
+let spyTick = false;
+window.addEventListener('scroll', () => {
+  if (spyTick) return;
+  spyTick = true;
+  requestAnimationFrame(() => {
+    spyTick = false;
+    let activeKey = null;
+    for (const ch of chapterMap) {
+      if (document.getElementById('ch-' + ch.key).getBoundingClientRect().top <= 90) activeKey = ch.key;
+    }
+    for (const a of toclist.querySelectorAll('a')) a.classList.toggle('active', a.dataset.key === activeKey);
+  });
+});
+$('tocbtn').addEventListener('click', () => {
+  if (window.innerWidth <= 1150) {
+    toc.classList.toggle('open');
+  } else {
+    const collapsed = document.body.classList.toggle('toc-collapsed');
+    $('tocbtn').classList.toggle('on', !collapsed);
+  }
+});
+if (window.innerWidth > 1150) $('tocbtn').classList.add('on');
+// 窗口宽度跨越断点时同步目录按钮状态
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 1150) {
+    $('tocbtn').classList.toggle('on', !document.body.classList.contains('toc-collapsed'));
+  } else {
+    $('tocbtn').classList.remove('on');
+  }
+});
+document.addEventListener('click', (ev) => {
+  if (window.innerWidth <= 1150 && toc.classList.contains('open') && !toc.contains(ev.target) && ev.target.id !== 'tocbtn') toc.classList.remove('open');
+});
+
+// ---------- 主题 ----------
+$('theme').addEventListener('click', () => {
+  document.body.classList.toggle('night');
+  $('theme').textContent = document.body.classList.contains('night') ? '日间' : '夜间';
+  try { localStorage.setItem('lw-theme', document.body.classList.contains('night') ? 'night' : 'day'); } catch (e) {}
+});
+try { if (localStorage.getItem('lw-theme') === 'night') { document.body.classList.add('night'); $('theme').textContent = '日间'; } } catch (e) {}
+
+// ---------- 筛选 ----------
+filterSel.addEventListener('change', () => {
+  const anchor = getAnchorId();
+  mode = filterSel.value;
+  renderAll();
+  scrollToAnchor(anchor);
+});
+
+// ---------- SSE ----------
+const es = new EventSource('/events');
+es.onopen = () => dot.classList.add('on');
+es.onerror = () => dot.classList.remove('on');
+es.addEventListener('meta', (ev) => {
+  const m = JSON.parse(ev.data);
+  charName = m.charName || '角色';
+  title.textContent = `生活长卷${charName ? ' · ' + charName : ''}`;
+  title.title = m.dbPath || '';
+});
+es.addEventListener('snapshot', (ev) => {
+  entries = JSON.parse(ev.data);
+  renderAll();
+});
+es.addEventListener('entry', (ev) => {
+  const e = JSON.parse(ev.data);
+  entries.push(e);
+  if (searchState.q) {
+    // 搜索进行中：保持视口与当前匹配，重渲染以纳入新条目
+    const a = getAnchorId();
+    renderAll();
+    scrollToAnchor(a);
+    if (curMatch >= 0) gotoMatch(curMatch, false);
+    applySearchMeta();
+  } else {
+    appendEntry(e, false);
+  }
+});
+</script>
+</body>
+</html>
